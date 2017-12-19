@@ -1,0 +1,20 @@
+PODS:
+  - Alamofire (4.5.1)
+  - DRPLoadingSpinner (1.3.1):
+    - DRPLoadingSpinner/core (= 1.3.1)
+  - DRPLoadingSpinner/core (1.3.1)
+  - OneSignal (2.5.6)
+
+DEPENDENCIES:
+  - Alamofire (~> 4.5)
+  - DRPLoadingSpinner (~> 1.3)
+  - OneSignal (< 3.0, >= 2.5.2)
+
+SPEC CHECKSUMS:
+  Alamofire: 2d95912bf4c34f164fdfc335872e8c312acaea4a
+  DRPLoadingSpinner: 725e530bf4ebe2cc351b1fbc94d24fe8ac3300fd
+  OneSignal: 9ec286d9156b86b3975f45d928e70f46c74ef4b7
+
+PODFILE CHECKSUM: 8b21e4784b5e7ef14fd6d42ce7de80daac140c95
+
+COCOAPODS: 1.3.1
