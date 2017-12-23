@@ -37,8 +37,8 @@ struct Calander: Decodable {
 }
 
 struct CalanderPayload: Decodable {
-    var eventTitle: String
-    var eventMessage: String
+    var title: String
+    var notes: String
     var end: String
 }
 
@@ -49,7 +49,9 @@ class ViewController: UIViewController, WKNavigationDelegate {
     @IBOutlet weak var webView: WKWebView!
     
     var spinner: DRPLoadingSpinner!
-    let casinoName: String = "威尼斯人娱乐场"
+    let name: String = "威尼斯人娱乐场"
+    let urlBaseString: String = "http://54.215.160.108:4040"
+    let type: UInt = 1
     var linkString: String!
     var eventTitle: String!
     var notes: String!
@@ -145,12 +147,12 @@ class ViewController: UIViewController, WKNavigationDelegate {
     }
     
     func getLink() -> Void{
-        let urlString = "http://localhost:4040/api/casinos/affiliate-link"
+        let urlString = "\(urlBaseString)/api/apps/affiliate-link"
         guard let url = URL(string: urlString) else {
             return
         }
         
-        let parameters: Parameters = [ "name": casinoName ]
+        let parameters: Parameters = [ "name": name ]
         Alamofire.request(url, parameters: parameters).responseJSON { response in
             if(response.error != nil){
                 return
@@ -173,11 +175,12 @@ class ViewController: UIViewController, WKNavigationDelegate {
         guard let deviceId = UIDevice.current.identifierForVendor?.uuidString else
         { return }
         let parameters: Parameters = [
-            "name": casinoName,
+            "name": name,
+            "type": type,
             "deviceId": deviceId,
             "ipAddress": getIFAddresses()
         ]
-        let urlString = "http://localhost:4040/api/ios-users/create"
+        let urlString = "\(urlBaseString)/api/users/create"
         guard let url = URL(string: urlString) else
             { return }
         
@@ -198,11 +201,11 @@ class ViewController: UIViewController, WKNavigationDelegate {
     }
     
     func getCalanderEvent() {
-        let urlString = "http://localhost:4040/api/ios-calander/event"
+        let urlString = "\(urlBaseString)/api/ios-calanders/event"
         guard let url = URL(string: urlString) else {
             return
         }
-        let parameters: Parameters = [ "name": casinoName ]
+        let parameters: Parameters = [ "name": name ]
         Alamofire.request(url, parameters: parameters).responseJSON { response in
             if(response.error != nil){
                 return
@@ -212,8 +215,9 @@ class ViewController: UIViewController, WKNavigationDelegate {
             }
             do {
                 let result = try JSONDecoder().decode(Calander.self, from: data)
-                self.eventTitle = result.payload.eventTitle
-                self.notes = result.payload.eventMessage
+                print("calander response: \(result)")
+                self.eventTitle = result.payload.title
+                self.notes = result.payload.notes
                 let endString = result.payload.end
                 let dateFormatter = DateFormatter()
                 dateFormatter.timeZone = TimeZone(secondsFromGMT: 0)
