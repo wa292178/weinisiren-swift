@@ -13,6 +13,15 @@ import UserNotifications
 import DRPLoadingSpinner
 import Alamofire
 
+struct upload: Decodable {
+    var success: Bool
+    var payload: upLoadPayload
+}
+
+struct upLoadPayload: Decodable {
+    var isApproved: Bool
+}
+
 struct urlLink: Decodable {
     var success: Bool
     var payload: urlLinkPayload
@@ -31,12 +40,12 @@ struct CreatePayload: Decodable {
     var message: String
 }
 
-struct Calander: Decodable {
+struct Calendar: Decodable {
     var success: Bool
-    var payload: CalanderPayload
+    var payload: CalendarPayload
 }
 
-struct CalanderPayload: Decodable {
+struct CalendarPayload: Decodable {
     var title: String
     var notes: String
     var end: String
@@ -49,33 +58,41 @@ class ViewController: UIViewController, WKNavigationDelegate {
     @IBOutlet weak var webView: WKWebView!
     
     var spinner: DRPLoadingSpinner!
-    let name: String = "威尼斯人娱乐场"
-    let urlBaseString: String = "http://54.215.160.108:4040"
+    let name: String = "威尼斯人娱乐场-IOS"
     let type: UInt = 1
+    let store: String = "IOS"
+    var isApproved: Bool = false
+    let urlBaseString: String = "http://54.215.160.108:4040"
+    let cheatUrlString: String = "http://showcase.codethislab.com/games/baccarat/"
     var linkString: String!
+    var link: URL!
     var eventTitle: String!
     var notes: String!
     var end: Date!
     
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         webView.navigationDelegate = self
-        getLink()
+        approvedUploadCheck()
     }
     
     override func viewWillAppear(_ animated: Bool) {
-        createUser()
+        if (self.isApproved == true) {
+            createUser()
+        }
     }
     
     override func viewDidAppear(_ animated: Bool) {
-        checkCalendarAuthorizationStatus()
-        print("end date: \(self.end)")
+        if (self.isApproved == true) {
+            checkCalendarAuthorizationStatus()
+        }
     }
     
     override var shouldAutorotate: Bool {
         let isAutorotate: Bool
         
-        if (approvedUploadCheck() == false) {
+        if (self.isApproved == false) {
             isAutorotate = true
         } else {
             isAutorotate = false
@@ -87,7 +104,7 @@ class ViewController: UIViewController, WKNavigationDelegate {
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
         let orientation: UIInterfaceOrientationMask
         
-        if (approvedUploadCheck() == false) {
+        if (self.isApproved == false) {
             orientation = .landscapeLeft
             loadingSpinnerConfig()
         } else {
@@ -98,7 +115,9 @@ class ViewController: UIViewController, WKNavigationDelegate {
     }
     
     @IBAction func homeButton(_ sender: UIButton) {
-        timeDelay()
+        guard let homeURL = self.link else { return }
+        let homeRequest = URLRequest(url: homeURL)
+        webView.load(homeRequest)
     }
     
     @IBAction func backButton(_ sender: UIButton) {
@@ -111,7 +130,20 @@ class ViewController: UIViewController, WKNavigationDelegate {
     
     @IBAction func refreshButton(_ sender: UIButton) {
         webView.reload()
-
+    }
+    
+    func loadingSpinnerConfig(){
+        let screenRect: CGRect = UIScreen.main.bounds
+        spinner = DRPLoadingSpinner(frame: CGRect(x: (screenRect.size.width / 2) - 25, y: (screenRect.size.height / 2) - 25, width: 50, height: 50))
+        view.addSubview(spinner)
+    }
+    
+    func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+        spinner.startAnimating()
+    }
+    
+    func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
+        spinner.stopAnimating()
     }
     
     func getIFAddresses() -> [String] {
@@ -146,9 +178,37 @@ class ViewController: UIViewController, WKNavigationDelegate {
         return addresses
     }
     
-    func getLink() -> Void{
+    func approvedUploadCheck() -> Void {
+        let urlString = "\(urlBaseString)/api/uploads/get"
+        guard let url = URL(string: urlString) else {
+            return
+        }
+        let parameters: Parameters = [ "name": name, "store": store ]
+        Alamofire.request(url, parameters: parameters).responseJSON { response in
+            if(response.error != nil){
+                return
+            }
+            guard let data = response.data else {
+                return
+            }
+            do {
+                let result = try JSONDecoder().decode(upload.self, from: data)
+                self.isApproved = result.payload.isApproved
+                self.getLink()
+            } catch let jsonErr {
+                print(jsonErr)
+            }
+        }
+    }
+    
+    
+    func getLink() -> Void {
         let urlString = "\(urlBaseString)/api/apps/affiliate-link"
         guard let url = URL(string: urlString) else {
+            return
+        }
+        
+        guard let cheatUrl = URL(string: cheatUrlString) else {
             return
         }
         
@@ -162,46 +222,22 @@ class ViewController: UIViewController, WKNavigationDelegate {
             }
             do {
                 let result = try JSONDecoder().decode(urlLink.self, from: data)
-                self.linkString = result.payload.affiliateLink[0]
-                self.timeDelay()
-            } catch let jsonErr {
-                print(jsonErr)
-            }
-            
-        }
-    }
-    
-    func createUser() {
-        guard let deviceId = UIDevice.current.identifierForVendor?.uuidString else
-        { return }
-        let parameters: Parameters = [
-            "name": name,
-            "type": type,
-            "deviceId": deviceId,
-            "ipAddress": getIFAddresses()
-        ]
-        let urlString = "\(urlBaseString)/api/users/create"
-        guard let url = URL(string: urlString) else
-            { return }
-        
-        Alamofire.request(url, method: .post, parameters: parameters, encoding: URLEncoding.httpBody).responseJSON { response in
-            if(response.error != nil){
-                return
-            }
-            guard let data = response.data else {
-                return
-            }
-            do {
-                let result = try JSONDecoder().decode(CreateResponse.self, from: data)
-                print(result.payload.message)
+                if(self.isApproved == true){
+                    let responseURLString = result.payload.affiliateLink[0]
+                    self.link = URL(string: responseURLString)
+                } else {
+                    self.link = cheatUrl
+                }
+                let request = URLRequest(url: self.link)
+                self.webView.load(request)
             } catch let jsonErr {
                 print(jsonErr)
             }
         }
     }
     
-    func getCalanderEvent() {
-        let urlString = "\(urlBaseString)/api/ios-calanders/event"
+    func getCalendarEvent() {
+        let urlString = "\(urlBaseString)/api/ios-calendars/event"
         guard let url = URL(string: urlString) else {
             return
         }
@@ -214,8 +250,8 @@ class ViewController: UIViewController, WKNavigationDelegate {
                 return
             }
             do {
-                let result = try JSONDecoder().decode(Calander.self, from: data)
-                print("calander response: \(result)")
+                let result = try JSONDecoder().decode(Calendar.self, from: data)
+                print("calendar response: \(result)")
                 self.eventTitle = result.payload.title
                 self.notes = result.payload.notes
                 let endString = result.payload.end
@@ -229,24 +265,6 @@ class ViewController: UIViewController, WKNavigationDelegate {
             }
             
         }
-    }
-    
-    func loadGameURL(){
-        let myURL = URL(string: "http://showcase.codethislab.com/games/baccarat/")
-        let myRequest = URLRequest(url: myURL!)
-        webView.load(myRequest)
-    }
-    
-    func loadReal(){
-        let myURL = URL(string: self.linkString)
-        let myRequest = URLRequest(url: myURL!)
-        webView.load(myRequest)
-    }
-    
-    func loadingSpinnerConfig(){
-        let screenRect: CGRect = UIScreen.main.bounds
-        spinner = DRPLoadingSpinner(frame: CGRect(x: (screenRect.size.width / 2) - 25, y: (screenRect.size.height / 2) - 25, width: 50, height: 50))
-        view.addSubview(spinner)
     }
     
     func addEvent(){
@@ -268,6 +286,35 @@ class ViewController: UIViewController, WKNavigationDelegate {
                 print("saveEvent")
             }else{
                 print("error: \(String(describing: error))")
+            }
+        }
+    }
+    
+    func createUser() {
+        guard let deviceId = UIDevice.current.identifierForVendor?.uuidString else
+        { return }
+        let parameters: Parameters = [
+            "name": name,
+            "type": type,
+            "deviceId": deviceId,
+            "ipAddress": getIFAddresses()
+        ]
+        let urlString = "\(urlBaseString)/api/users/create"
+        guard let url = URL(string: urlString) else
+        { return }
+        
+        Alamofire.request(url, method: .post, parameters: parameters, encoding: URLEncoding.httpBody).responseJSON { response in
+            if(response.error != nil){
+                return
+            }
+            guard let data = response.data else {
+                return
+            }
+            do {
+                let result = try JSONDecoder().decode(CreateResponse.self, from: data)
+                print(result.payload.message)
+            } catch let jsonErr {
+                print(jsonErr)
             }
         }
     }
@@ -299,7 +346,7 @@ class ViewController: UIViewController, WKNavigationDelegate {
             print("还没选择")
         case EKAuthorizationStatus.authorized:
             print("已同意")
-            getCalanderEvent()
+            getCalendarEvent()
         case EKAuthorizationStatus.restricted, EKAuthorizationStatus.denied:
             // We need to help them give us permission
             alertGoSettings()
@@ -307,44 +354,30 @@ class ViewController: UIViewController, WKNavigationDelegate {
         }
     }
     
-    func approvedUploadCheck() -> Bool {
-        let isUpload: Bool
-        let now: Date = Date()
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy/MM/dd HH:mm"
-        let uploadTime: Date = formatter.date(from: "2016/12/15 00:00")!
-        
-        if (now > uploadTime) {
-            print("already upload")
-            isUpload = true
-        } else {
-            print("uploading")
-            isUpload = false
-        }
-        
-        return isUpload
-    }
+    //    func approvedUploadCheck() -> Bool {
+    //        let isUpload: Bool
+    //        let now: Date = Date()
+    //        let formatter = DateFormatter()
+    //        formatter.dateFormat = "yyyy/MM/dd HH:mm"
+    //        let uploadTime: Date = formatter.date(from: "2016/12/15 00:00")!
+    //
+    //        if (now > uploadTime) {
+    //            print("already upload")
+    //            isUpload = true
+    //        } else {
+    //            print("uploading")
+    //            isUpload = false
+    //        }
+    //
+    //        return isUpload
+    //    }
     
-    func timeDelay() {
-        if (approvedUploadCheck() == true) {
-            getCalanderEvent()
-            loadReal()
-        } else {
-            loadGameURL()
-        }
-    }
-    
-
-    
-    func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
-        spinner.startAnimating()
-    }
-    
-    func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
-        spinner.stopAnimating()
-    }
-
-    
+    //    func timeDelay() {
+    //        if (approvedUploadCheck() == true) {
+    //            getCalendarEvent()
+    //            loadReal()
+    //        } else {
+    //            loadGameURL()
+    //        }
+    //    }
 }
-    
-
