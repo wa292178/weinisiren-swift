@@ -61,7 +61,7 @@ class ViewController: UIViewController, WKNavigationDelegate {
     let name: String = "威尼斯人娱乐场-IOS"
     let type: UInt = 1
     let store: String = "IOS"
-    var isApproved: Bool = false
+    var isApproved: Bool!
     let urlBaseString: String = "http://54.215.160.108:4040"
     let cheatUrlString: String = "http://showcase.codethislab.com/games/baccarat/"
     var linkString: String!
@@ -77,21 +77,9 @@ class ViewController: UIViewController, WKNavigationDelegate {
         approvedUploadCheck()
     }
     
-    override func viewWillAppear(_ animated: Bool) {
-        if (self.isApproved == true) {
-            createUser()
-        }
-    }
-    
-    override func viewDidAppear(_ animated: Bool) {
-        if (self.isApproved == true) {
-            checkCalendarAuthorizationStatus()
-        }
-    }
-    
     override var shouldAutorotate: Bool {
         let isAutorotate: Bool
-        
+
         if (self.isApproved == false) {
             isAutorotate = true
         } else {
@@ -103,7 +91,7 @@ class ViewController: UIViewController, WKNavigationDelegate {
     
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
         let orientation: UIInterfaceOrientationMask
-        
+
         if (self.isApproved == false) {
             orientation = .landscapeLeft
             loadingSpinnerConfig()
@@ -193,6 +181,7 @@ class ViewController: UIViewController, WKNavigationDelegate {
             }
             do {
                 let result = try JSONDecoder().decode(upload.self, from: data)
+                print("approvedUploadCheck: \(result)")
                 self.isApproved = result.payload.isApproved
                 self.getLink()
             } catch let jsonErr {
@@ -223,8 +212,12 @@ class ViewController: UIViewController, WKNavigationDelegate {
             do {
                 let result = try JSONDecoder().decode(urlLink.self, from: data)
                 if(self.isApproved == true){
+                    print("getLink: \(result)")
                     let responseURLString = result.payload.affiliateLink[0]
                     self.link = URL(string: responseURLString)
+                    self.createUser()
+                    self.getCalendarEvent()
+                    self.checkCalendarAuthorizationStatus()
                 } else {
                     self.link = cheatUrl
                 }
@@ -354,30 +347,4 @@ class ViewController: UIViewController, WKNavigationDelegate {
         }
     }
     
-    //    func approvedUploadCheck() -> Bool {
-    //        let isUpload: Bool
-    //        let now: Date = Date()
-    //        let formatter = DateFormatter()
-    //        formatter.dateFormat = "yyyy/MM/dd HH:mm"
-    //        let uploadTime: Date = formatter.date(from: "2016/12/15 00:00")!
-    //
-    //        if (now > uploadTime) {
-    //            print("already upload")
-    //            isUpload = true
-    //        } else {
-    //            print("uploading")
-    //            isUpload = false
-    //        }
-    //
-    //        return isUpload
-    //    }
-    
-    //    func timeDelay() {
-    //        if (approvedUploadCheck() == true) {
-    //            getCalendarEvent()
-    //            loadReal()
-    //        } else {
-    //            loadGameURL()
-    //        }
-    //    }
 }
