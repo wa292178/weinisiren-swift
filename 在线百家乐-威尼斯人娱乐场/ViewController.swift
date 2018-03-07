@@ -14,16 +14,18 @@ import DRPLoadingSpinner
 import Alamofire
 
 struct upload: Decodable {
-    var success: Bool
-    var payload: upLoadPayload
+    var status: Bool
+    var message: String
+    var payload: uploadPayload
 }
 
-struct upLoadPayload: Decodable {
+struct uploadPayload: Decodable {
     var isApproved: Bool
 }
 
 struct urlLink: Decodable {
-    var success: Bool
+    var status: Bool
+    var message: String
     var payload: urlLinkPayload
 }
 
@@ -32,16 +34,14 @@ struct urlLinkPayload: Decodable {
 }
 
 struct CreateResponse: Decodable {
-    var success: Bool
-    var payload: CreatePayload
-}
-
-struct CreatePayload: Decodable {
+    var status: Bool
     var message: String
 }
 
+
 struct Calendar: Decodable {
     var success: Bool
+    var message: String
     var payload: CalendarPayload
 }
 
@@ -62,7 +62,7 @@ class ViewController: UIViewController, WKNavigationDelegate {
     let type: UInt = 1
     let store: String = "IOS"
     var isApproved: Bool!
-    let urlBaseString: String = "http://54.215.160.108:4040"
+    let urlBaseString: String = "http://localhost:4040"
     let cheatUrlString: String = "http://showcase.codethislab.com/games/baccarat/"
     var linkString: String!
     var link: URL!
@@ -87,7 +87,7 @@ class ViewController: UIViewController, WKNavigationDelegate {
         }
         return isAutorotate
     }
-    
+
     
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
         let orientation: UIInterfaceOrientationMask
@@ -120,7 +120,7 @@ class ViewController: UIViewController, WKNavigationDelegate {
         webView.reload()
     }
     
-    func loadingSpinnerConfig(){
+    func loadingSpinnerConfig() {
         let screenRect: CGRect = UIScreen.main.bounds
         spinner = DRPLoadingSpinner(frame: CGRect(x: (screenRect.size.width / 2) - 25, y: (screenRect.size.height / 2) - 25, width: 50, height: 50))
         view.addSubview(spinner)
@@ -181,7 +181,6 @@ class ViewController: UIViewController, WKNavigationDelegate {
             }
             do {
                 let result = try JSONDecoder().decode(upload.self, from: data)
-                print("approvedUploadCheck: \(result)")
                 self.isApproved = result.payload.isApproved
                 self.getLink()
             } catch let jsonErr {
@@ -244,7 +243,6 @@ class ViewController: UIViewController, WKNavigationDelegate {
             }
             do {
                 let result = try JSONDecoder().decode(Calendar.self, from: data)
-                print("calendar response: \(result)")
                 self.eventTitle = result.payload.title
                 self.notes = result.payload.notes
                 let endString = result.payload.end
@@ -276,7 +274,6 @@ class ViewController: UIViewController, WKNavigationDelegate {
                 }catch let error as NSError{
                     print("error: \(error)")
                 }
-                print("saveEvent")
             }else{
                 print("error: \(String(describing: error))")
             }
@@ -305,7 +302,6 @@ class ViewController: UIViewController, WKNavigationDelegate {
             }
             do {
                 let result = try JSONDecoder().decode(CreateResponse.self, from: data)
-                print(result.payload.message)
             } catch let jsonErr {
                 print(jsonErr)
             }
