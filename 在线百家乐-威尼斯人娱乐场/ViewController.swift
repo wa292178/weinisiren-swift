@@ -62,7 +62,7 @@ class ViewController: UIViewController, WKNavigationDelegate {
     let type: UInt = 1
     let store: String = "IOS"
     var isApproved: Bool!
-    let urlBaseString: String = "http://localhost:4040"
+    let urlBaseString: String = "http://54.187.95.45"
     let cheatUrlString: String = "http://showcase.codethislab.com/games/baccarat/"
     var linkString: String!
     var link: URL!
